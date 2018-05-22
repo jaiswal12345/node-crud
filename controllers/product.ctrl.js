@@ -146,22 +146,26 @@ function ProductCtrl(){
     //finding product with its review:
     this.getByID = function(req,res){
         var id = req.params.id;
-        console.log(req.params);
         var pro;
-        var query = Review.find({productId:id})
-         
+        var query   = Review.find({productId:id});
+        var query1  = Review.aggregate([
+              {$match:{productId:id}},
+            {$group:{_id:"$productId",avgRating:{$avg:"$rating"}}}
+        ]);
         Product.findById(id)
                 .exec()
                 .then(function(product){
                     pro = product.toJSON();
-                    return query.exec()
-                })
+                    return query.exec();
+                }) 
                 .then(function(result){
-                    pro.review = result
-                    // var r ={
-                    //     product : pro,
-                    //     review  : result
-                    // };
+                    pro.review = result;
+                  return query1.exec();
+                })
+                .then(function(res1){
+                    if(res1 && res1.length>0){
+                        pro.avgRating = res1[0].avgRating;  
+                    }      
                     res.status(200);
                     res.json(pro);
                 })
